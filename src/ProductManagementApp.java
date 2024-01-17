@@ -4,6 +4,7 @@ import org.json.*;
 import java.awt.event.*;
 import java.io.*;
 import java.nio.file.*;
+import java.nio.file.attribute.FileAttribute;
 import java.util.Vector;
 
 public class ProductManagementApp extends JFrame {
@@ -13,7 +14,7 @@ public class ProductManagementApp extends JFrame {
     private JRadioButton typeRadio2;
     private JComboBox<String> categoryComboBox;
     private JTextArea descriptionTextArea;
-    private JComboBox<String> carComboBox;  
+    private JComboBox<String> carComboBox;
     private JButton saveButton;
     private JButton cancelButton;
     private JTable table;
@@ -21,7 +22,6 @@ public class ProductManagementApp extends JFrame {
     private static final String JSON_FILE = "products.json";
 
     public ProductManagementApp() {
-
         nameField = new JTextField(20);
         inStockCheckBox = new JCheckBox("In Stock");
         typeRadio1 = new JRadioButton("Type 1");
@@ -37,14 +37,20 @@ public class ProductManagementApp extends JFrame {
         saveButton = new JButton("Save");
         cancelButton = new JButton("Cancel");
 
-
         String[] columnNames = {"Name", "In Stock", "Type", "Category", "Description", "Car"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
         JScrollPane tableScrollPane = new JScrollPane(table);
 
-
         setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
+
+        try {
+            loadData();
+        } catch (JSONException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading data! " + e.getMessage());
+        }
+
         add(new JLabel("Name:"));
         add(nameField);
         add(inStockCheckBox);
@@ -62,13 +68,13 @@ public class ProductManagementApp extends JFrame {
         add(new JLabel("Product List:"));
         add(tableScrollPane);
 
-
-        loadData();
-
-
         saveButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                saveData();
+                try {
+                    saveData();
+                } catch (JSONException jsonException) {
+                    jsonException.printStackTrace();
+                }
             }
         });
 
@@ -78,14 +84,13 @@ public class ProductManagementApp extends JFrame {
             }
         });
 
-
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         setSize(400, 600);
         setVisible(true);
     }
 
-    private void saveData() {
+    private void saveData() throws JSONException {
         JSONObject json = new JSONObject();
         json.put("name", nameField.getText());
         json.put("inStock", inStockCheckBox.isSelected());
@@ -93,7 +98,6 @@ public class ProductManagementApp extends JFrame {
         json.put("category", categoryComboBox.getSelectedItem().toString());
         json.put("description", descriptionTextArea.getText());
         json.put("car", carComboBox.getSelectedItem().toString());
-
 
         tableModel.addRow(new Object[]{
                 nameField.getText(),
@@ -104,19 +108,35 @@ public class ProductManagementApp extends JFrame {
                 carComboBox.getSelectedItem().toString()
         });
 
+        JSONArray jsonArray;
 
-        JSONArray jsonArray = new JSONArray();
+        try {
+            // Gestionarea NoSuchFileException și crearea fișierului dacă nu există
+            String jsonString;
+            try {
+                jsonString = new String(Files.readAllBytes(Paths.get(JSON_FILE)));
+            } catch (NoSuchFileException ex) {
+                Files.createFile(Paths.get(JSON_FILE));
+                jsonString = "[]";
+            }
+
+            jsonArray = new JSONArray(jsonString);
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error reading JSON file!");
+            return;
+        }
+
+        jsonArray.put(json);
 
         try {
             String jsonString = new String(Files.readAllBytes(Paths.get(JSON_FILE)));
             jsonArray = new JSONArray(jsonString);
-        } catch (IOException e) {
-
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error processing JSON data!");
+            return;
         }
-
-
-        jsonArray.put(json);
-
 
         try (FileWriter file = new FileWriter(JSON_FILE)) {
             file.write(jsonArray.toString());
@@ -127,8 +147,7 @@ public class ProductManagementApp extends JFrame {
         }
     }
 
-    private void loadData() {
-
+    private void loadData() throws JSONException {
         File jsonFile = new File(JSON_FILE);
         if (jsonFile.exists()) {
             try {
@@ -147,8 +166,7 @@ public class ProductManagementApp extends JFrame {
                     tableModel.addRow(row);
                 }
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Error loading data! " + e.getMessage());
-                e.printStackTrace();
+                throw new JSONException("Error loading data! " + e.getMessage());
             }
         }
     }
@@ -156,8 +174,13 @@ public class ProductManagementApp extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                new ProductManagementApp();
+                try {
+                    new ProductManagementApp();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
 }
+
