@@ -13,7 +13,7 @@ public class ProductManagementApp extends JFrame {
     private JRadioButton typeRadio2;
     private JComboBox<String> categoryComboBox;
     private JTextArea descriptionTextArea;
-    private JComboBox<String> carComboBox;  // Adăugat câmpul pentru mașină
+    private JComboBox<String> carComboBox;  
     private JButton saveButton;
     private JButton cancelButton;
     private JTable table;
