@@ -174,13 +174,8 @@ public class ProductManagementApp extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                try {
-                    new ProductManagementApp();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+                new ProductManagementApp();
             }
         });
     }
 }
-
